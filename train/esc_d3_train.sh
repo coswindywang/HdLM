@@ -20,7 +20,7 @@ else
   MASTER_ADDR=localhost
   MASTER_PORT=12345
 fi
-cd LLaMA-Factory
+cd utils/LLaMA-Factory
 export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
