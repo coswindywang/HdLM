@@ -1,8 +1,6 @@
 ### Depth2
 
 # ---WOS
-sys_prompt = "You are a research assistant, your task is to categorize a research article by determining its domain and area. Your judgment will be based on the article's abstract and keywords, and you will use provided lists of domains and areas. You must strictly output the ID corresponding to your classification at each step."
-usr_prompt = "### Abstract:\n{abstract}\n\n### Keywords\n{keywords}.\n\n### Task\nBased on the above context, select the appropriate domain from the candidates below and provide the corresponding number ID (0-6).\n\nDomain list:\n{domain_list}\n\nAnswer:\n"
 wos_task_prompt = '''Area list:\n{Area_subdict}\n\nAnswer:\n'''
 Domain_dict = {0: 'CS', 1: 'ECE', 2: 'Psychology', 3: 'MAE', 4: 'Civil', 5: 'Medical', 6: 'Biochemistry'}
 Area_dict = {'Biochemistry': {0: 'Molecular biology', 1: 'Cell biology', 2: 'Human Metabolism', 3: 'Immunology', 4: 'Genetics', 5: 'Enzymology', 6: 'Polymerase chain reaction', 7: 'Northern blotting', 8: 'Southern blotting'},
@@ -20,8 +18,6 @@ esc_subtask_prompt = '''As the supporter in this conversation, based on the abov
 ### Depth3
 
 # ---DBP
-sys_prompt = '''You are an AI assistant who is very familiar with Wikipedia and hierarchical classification. Your task is to analyze the provided content and determine its category step by step. You must strictly output the ID corresponding to your classification at each step.'''
-usr_prompt = "### WIKI NAME\n{wiki_name}\n\n### WIKI CONTENT\n{wiki_text}\n\n### Task\nBased on the above context, select the most appropriate option ID from the list of labels.\n\nLabel list:\n{label_list}\n\nAnswer\n"
 dbp_subtask_prompt = '''Label list:\n{label_list}\n\nAnswer:\n'''
 Label1 = {0: 'Agent', 1: 'Device', 2: 'Event', 3: 'Place', 4: 'Species', 5: 'SportsSeason', 6: 'TopicalConcept', 7: 'UnitOfWork', 8: 'Work'}
 Label2 ={
@@ -107,8 +103,6 @@ Label3 ={
     'Broadcaster': {0: 'BroadcastNetwork', 1: 'RadioStation', 2: 'TelevisionStation'}}
 
 # ---ESC-Depth3
-sys_prompt = '''You are an emotional support assistant. Perform the following three sequential tasks:\n1. Analyze the dialogue history to select the optimal emotion ID of the seeker.\n2. Based on the identified emotional state, analyze the dialogue history again to select the most appropriate strategy ID.\n3. Generate a response strictly adhering to the selected strategy and the identified emotional state.'''
-usr_prompt = '''### History\n{history}.\n\n### Task\nAs an emotion-sensing assistant, analyze the emotional state of the current seeker based on the conversation history and select the appropriate ID from the candidats.\n\nEmotion list:\n{emotion_list}\n\nAnswer:\n'''
 esc_subtask1_prompt = '''### Task\nAs the supporter in the conversation, choose the appropriate strategy from the candidates and output the corresponding number ID.\n\nStrategy list:\n{strategy_list}\n\nAnswer:\n'''
 esc_subtask2_prompt = '''As the supporter in this conversation, based on the above information and your chosen strategy, continue to respond to the conversation.\n\nAnswer:\n'''
 

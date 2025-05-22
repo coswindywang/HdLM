@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 import sys
 
-from hdlm_prompts import (
+from .hdlm_prompts import (
     wos_subtask_prompt,
     Area_dict,
     Domain_dict,
@@ -67,10 +67,10 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
             self.think_losses = []
         
         # get the token sequence of thought and assistant 
-        self.thought_token_ids = self.tokenizer.encode("<|start_header_id|>thought<|end_header_id|>\n\n")
-        self.assistant_token_ids = self.tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n")
-        self.subtask_token_ids = self.tokenizer.encode("<|start_header_id|>subtask<|end_header_id|>\n\n")
-        self.end_token_ids = self.tokenizer.encode("<|eot_id|>")
+        self.thought_token_ids = self.tokenizer.encode("<|start_header_id|>thought<|end_header_id|>\n\n",add_special_tokens=False)
+        self.assistant_token_ids = self.tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n",add_special_tokens=False)
+        self.subtask_token_ids = self.tokenizer.encode("<|start_header_id|>subtask<|end_header_id|>\n\n",add_special_tokens=False)
+        self.end_token_ids = self.tokenizer.encode("<|eot_id|>",add_special_tokens=False)
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -113,7 +113,6 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
         output_hidden_states = output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        # 获得模型的所有层输出
         outputs = self.model(
             input_ids, 
             attention_mask=attention_mask, 
@@ -122,7 +121,7 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
             inputs_embeds=inputs_embeds, 
             use_cache=use_cache, 
             output_attentions=output_attentions, 
-            output_hidden_states=True,  # 获取所有隐藏层的输出
+            output_hidden_states=True,
             return_dict=return_dict, 
         )
 
@@ -131,11 +130,11 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
         final_logits = self.lm_head(final_hidden_states)
         final_logits = final_logits.float()
         
-        intermediate_logits = None
+        think_logits = None
 
         loss = None
         final_loss = None
-        intermediate_loss = None
+        think_loss = None
 
         if labels is not None:
             def find_subsequence_indices(sequence, subsequence):
@@ -169,13 +168,13 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
 
             if self.think_layer_index is not None:
                 intermediate_hidden_states = outputs.hidden_states[self.think_layer_index]
-                intermediate_logits = self.new_lm_head(intermediate_hidden_states)
-                shift_intermediate_logits = intermediate_logits[..., :-1, :].contiguous()
+                think_logits = self.new_lm_head(intermediate_hidden_states)
+                shift_think_logits = think_logits[..., :-1, :].contiguous()
                 intermediate_labels = torch.where(thought_loss_mask > 0, labels, torch.tensor(-100).to(labels.device))
                 shift_intermediate_labels = intermediate_labels[..., 1:].contiguous()
-                intermediate_loss = loss_fct(shift_intermediate_logits.view(-1, self.config.vocab_size), 
-                                        shift_intermediate_labels.view(-1).to(intermediate_logits.device))
-                print(f">>> Intermediate_loss: {intermediate_loss}")
+                think_loss = loss_fct(shift_think_logits.view(-1, self.config.vocab_size), 
+                                        shift_intermediate_labels.view(-1).to(think_logits.device))
+                print(f">>> think_loss: {think_loss}")
             shift_logits = final_logits[..., :-1, :].contiguous()
             assistant_labels = torch.where(assistant_loss_mask > 0, labels, torch.tensor(-100).to(labels.device))
             shift_assistant_labels = assistant_labels[..., 1:].contiguous()
@@ -183,22 +182,22 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
                                       shift_assistant_labels.view(-1).to(final_logits.device))
             print(f">>> Final_loss: {final_loss}")
             # compute total loss
-            if intermediate_loss is not None:
-                loss = final_loss * self.final_loss_weight + intermediate_loss * self.intermediate_loss_weight
+            if think_loss is not None:
+                loss = final_loss * self.final_loss_weight + think_loss * self.think_loss_weight
                 if self.record_losses:
                     self.final_losses.append(final_loss.item())
-                    self.intermediate_losses.append(intermediate_loss.item())
+                    self.think_losses.append(think_loss.item())
             else:
                 loss = final_loss
                 if self.record_losses:
                     self.final_losses.append(final_loss.item())
             print(f"Loss: {loss}")
 
-        if self.intermediate_layer_index is not None:
-            intermediate_logits = self.new_lm_head(outputs.hidden_states[self.intermediate_layer_index])
+        if self.think_layer_index is not None:
+            think_logits = self.new_lm_head(outputs.hidden_states[self.think_layer_index])
         
-        if use_intermediate_head and (self.intermediate_layer_index is not None):
-            logits = intermediate_logits.float()
+        if use_intermediate_head and (self.think_layer_index is not None):
+            logits = think_logits.float()
         else:
             logits = final_logits
 
@@ -287,7 +286,7 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
                     "past_key_values": past_key_values,
                     "use_cache": use_cache,
                     "attention_mask": attention_mask,
-                    "use_intermediate_head": use_intermediate_head,  # 传递到 forward 中
+                    "use_intermediate_head": use_intermediate_head, 
                 }
             )
             return model_inputs
@@ -297,25 +296,25 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
     def plot_losses(self, fig_save_dir):
         if self.record_losses:
             with open(f"{fig_save_dir}/two_losses.jsonl", "w") as jsonl_file:
-                for step, final_loss, intermediate_loss in zip(range(len(self.final_losses)), self.final_losses, self.intermediate_losses):
-                    jsonl_file.write(json.dumps({"step": step, "intermediate_losses": intermediate_loss, "final_losses": final_loss}) + "\n")
+                for step, final_loss, think_loss in zip(range(len(self.final_losses)), self.final_losses, self.think_losses):
+                    jsonl_file.write(json.dumps({"step": step, "think_losses": think_loss, "final_losses": final_loss}) + "\n")
             plt.figure(figsize=(10, 5))
             
             
             plt.plot(self.final_losses, label="Final Loss", alpha=0.5, color='#92a5d1')
-            plt.plot(self.intermediate_losses, label="Intermediate Loss", alpha=0.5, color='#d9b9d4')
+            plt.plot(self.think_losses, label="Think Loss", alpha=0.5, color='#d9b9d4')
             
             
             final_losses_smooth = savgol_filter(self.final_losses, window_length=5, polyorder=2)
-            intermediate_losses_smooth = savgol_filter(self.intermediate_losses, window_length=5, polyorder=2)
+            think_losses_smooth = savgol_filter(self.think_losses, window_length=5, polyorder=2)
             plt.plot(self.final_losses, label="Final Loss (Smooth)", alpha=0.3, color='#92a5d1')
-            plt.plot(self.intermediate_losses, label="Intermediate Loss (Smooth)", alpha=0.3, color='#d9b9d4')
+            plt.plot(self.think_losses, label="Think Loss (Smooth)", alpha=0.3, color='#d9b9d4')
             
             plt.xlabel("Training Step")
             plt.ylabel("Loss")
             plt.title("Loss Curves")
             plt.legend()
-            plt.savefig(f"{fig_save_dir}/intermediate_and_final_losses.png") 
+            plt.savefig(f"{fig_save_dir}/think_and_final_losses.png") 
             plt.show()
 
             
@@ -393,6 +392,6 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
             return label1, label2
 
         else:
-            
+
             response_text = "HdLM must think!"
             return response_text

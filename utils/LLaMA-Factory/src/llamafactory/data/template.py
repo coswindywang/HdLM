@@ -153,7 +153,7 @@ class Template:
             elif message["role"] == Role.SUBTASK.value:
                 elements += self.format_thought.apply(content = messages[i-1]["content"])
                 elements += self.format_subtask.apply(content = message["content"])
-                elements += self.format_assistant.apply(content = message[i+1]["content"])
+                elements += self.format_assistant.apply(content = messages[i+1]["content"])
             elif message["role"] == Role.THOUGHT_ST.value:
                 elements += self.format_first_thought.apply(content = message["content"])
                 elements += self.format_subtask_1.apply(content = messages[i+1]["content"])

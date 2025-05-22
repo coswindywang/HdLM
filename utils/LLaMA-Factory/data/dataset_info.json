@@ -2,13 +2,14 @@
     "WoS-HTC":{
         "file_name": "PATH_TO_WoS_DATASET",
         "formatting": "alpaca",
-        "add_thought": "has_subtask",
+        "add_thought": true,
+        "has_subtask": true,
         "columns":{
             "prompt": "system",
             "query": "input",
             "thought": "think",
             "subtask": "subtask",
-            "assistant": "assistant"
+            "response": "assistant"
         }
     },
     "DBP-HTC":{

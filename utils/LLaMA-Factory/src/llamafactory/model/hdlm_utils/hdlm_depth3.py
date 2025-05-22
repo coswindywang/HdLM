@@ -33,7 +33,7 @@ from transformers.utils import (
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
-from hdlm_prompts import (
+from .hdlm_prompts import (
     esc_subtask1_prompt,
     esc_subtask2_prompt,
     dbp_subtask_prompt,

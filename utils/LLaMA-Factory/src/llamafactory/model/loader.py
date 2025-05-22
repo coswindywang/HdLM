@@ -149,14 +149,14 @@ def load_model(
         elif model_args.train_from_scratch:
             model = AutoModelForCausalLM.from_config(config)
         elif model_args.train_hdlm_depth2:
-            model = Depth2_HdLMModel.from_pretrain(**init_kwargs,
+            model = Depth2_HdLMModel.from_pretrained(**init_kwargs,
                                                    tokenizer_path = model_args.model_name_or_path,
                                                    think_layer_index = model_args.think_layer_index,
                                                    think_loss_weight = model_args.think_loss_weight,
                                                    final_loss_weight = model_args.final_loss_weight,
                                                    record_losses = True)
         elif model_args.train_hdlm_depth3:
-            model = Depth3_HdLMModel.from_pretrain(**init_kwargs,
+            model = Depth3_HdLMModel.from_pretrained(**init_kwargs,
                                                    tokenizer_path = model_args.model_name_or_path,
                                                    first_layer_index = model_args.first_layer_index,
                                                    second_layer_index = model_args.second_layer_index,

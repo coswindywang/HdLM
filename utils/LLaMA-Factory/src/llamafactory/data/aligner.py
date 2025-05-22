@@ -99,7 +99,7 @@ def convert_alpaca(
                 {"role": Role.SUBTASK_ST.value, "content": examples[dataset_attr.subtask_1][i]},
                 {"role": Role.THOUGHT_ND.value, "content": examples[dataset_attr.second_thought][i]},
                 {"role": Role.SUBTASK_ND.value, "content": examples[dataset_attr.subtask_2][i]},
-                {"role": Role.ASSISTANT.value, "content": examples[dataset_attr.response[i]]}
+                {"role": Role.ASSISTANT.value, "content": examples[dataset_attr.response][i]}
             ]
         elif (
             dataset_attr.add_thought
