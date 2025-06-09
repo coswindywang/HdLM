@@ -37,6 +37,10 @@ class ModelArguments:
         },
     )
     #QTA config
+    has_subtask: bool = field(
+        default=True,
+        metadata={"help": "Is there a subtask prompt?"}
+    )
     train_hdlm_depth2: bool = field(
         default=False,
         metadata={"help": "Whether or not train the intermediate layer of model."}

@@ -12,6 +12,16 @@
             "response": "assistant"
         }
     },
+    "GSM8K-Depth2":{
+        "file_name": "PATH_TO_GSM8K_DATASET",
+        "formatting": "alpaca",
+        "add_thought": true,
+        "columns":{
+            "query": "question",
+            "thought": "rationale",
+            "response": "answer"
+        }
+    },
     "DBP-HTC":{
         "file_name": "PATH_TO_DBpedia_DATASET",
         "formatting": "alpaca",

@@ -150,6 +150,7 @@ def load_model(
             model = AutoModelForCausalLM.from_config(config)
         elif model_args.train_hdlm_depth2:
             model = Depth2_HdLMModel.from_pretrained(**init_kwargs,
+                                                   has_subtask = model_args.has_subtask,
                                                    tokenizer_path = model_args.model_name_or_path,
                                                    think_layer_index = model_args.think_layer_index,
                                                    think_loss_weight = model_args.think_loss_weight,

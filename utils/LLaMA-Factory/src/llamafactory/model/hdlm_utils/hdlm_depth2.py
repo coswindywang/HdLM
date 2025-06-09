@@ -45,7 +45,7 @@ from .hdlm_prompts import (
 class Depth2_HdLMModel(LlamaPreTrainedModel):
     _tied_weights_keys = ["lm_head.weight"]
 
-    def __init__(self, config, tokenizer_path, think_layer_index=None, 
+    def __init__(self, config, has_subtask, tokenizer_path, think_layer_index=None, 
                  think_loss_weight=1, final_loss_weight=1,record_losses=False):
         super().__init__(config)
         self.model = LlamaModel(config)
@@ -62,6 +62,7 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
         self.think_loss_weight = think_loss_weight
         self.final_loss_weight = final_loss_weight
         self.record_losses = record_losses
+        self.has_subtask = has_subtask
         if self.record_losses:
             self.final_losses = []
             self.think_losses = []
@@ -69,7 +70,8 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
         # get the token sequence of thought and assistant 
         self.thought_token_ids = self.tokenizer.encode("<|start_header_id|>thought<|end_header_id|>\n\n",add_special_tokens=False)
         self.assistant_token_ids = self.tokenizer.encode("<|start_header_id|>assistant<|end_header_id|>\n\n",add_special_tokens=False)
-        self.subtask_token_ids = self.tokenizer.encode("<|start_header_id|>subtask<|end_header_id|>\n\n",add_special_tokens=False)
+        if self.has_subtask:
+            self.subtask_token_ids = self.tokenizer.encode("<|start_header_id|>subtask<|end_header_id|>\n\n",add_special_tokens=False)
         self.end_token_ids = self.tokenizer.encode("<|eot_id|>",add_special_tokens=False)
         # Initialize weights and apply final processing
         self.post_init()
@@ -152,14 +154,18 @@ class Depth2_HdLMModel(LlamaPreTrainedModel):
 
             for batch_idx in range(batch_size):
                 thought_start_list = find_subsequence_indices(labels[batch_idx], self.thought_token_ids)
-                subtask_start_list = find_subsequence_indices(labels[batch_idx], self.subtask_token_ids)
+                if self.has_subtask:
+                    subtask_start_list = find_subsequence_indices(labels[batch_idx], self.subtask_token_ids)
                 # print(thought_start_list)
                 assistant_start_list = find_subsequence_indices(labels[batch_idx], self.assistant_token_ids)
                 # print(assistant_start_list)
                 if len(thought_start_list) > 0 and len(assistant_start_list) > 0 and len(thought_start_list)==len(assistant_start_list): ## 这里可能需要修改，在HTC中，三层分类时应该是两次thounght过程
                     for i in range(0, len(thought_start_list)):
                         # Mask for thought part (think layer)
-                        thought_loss_mask[batch_idx, thought_start_list[i] + len(self.thought_token_ids) : subtask_start_list[i]] = 1
+                        if self.has_subtask:
+                            thought_loss_mask[batch_idx, thought_start_list[i] + len(self.thought_token_ids) : subtask_start_list[i]] = 1
+                        else:
+                            thought_loss_mask[batch_idx, thought_start_list[i] + len(self.thought_token_ids) : assistant_start_list[i]] = 1
                         # Mask for assistant part (final layer)
                         # assistant_loss_mask[batch_idx, assistant_start_list[i] + len(self.assistant_token_ids) : assistant_start_list[i] + len(self.assistant_token_ids) + next_assistant_end + 1] = 1
                         assistant_loss_mask[batch_idx, assistant_start_list[i] + len(self.assistant_token_ids):] = 1
