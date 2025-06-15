@@ -2,7 +2,7 @@
 
 cd ../../utils/llm_eval
 
-file_path="/HdLM_project/HdLM/infra/ESC/result.json"
+file_path="/HdLM/infra/ESC/result.json"
 
 
 echo "Processing $path with dist2..."
